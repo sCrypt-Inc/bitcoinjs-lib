@@ -9,15 +9,7 @@ export { address, crypto, networks, payments, script };
 export { Block } from './block.js';
 /** @hidden */
 export { TaggedHashPrefix } from './crypto.js';
-export {
-  Psbt,
-  PsbtTxInput,
-  PsbtTxOutput,
-  Signer,
-  SignerAsync,
-  HDSigner,
-  HDSignerAsync,
-} from './psbt.js';
+
 /** @hidden */
 export { OPS as opcodes } from './ops.js';
 export { Transaction } from './transaction.js';
@@ -33,3 +25,7 @@ export {
 } from './payments/index.js';
 export { Input as TxInput, Output as TxOutput } from './transaction.js';
 export { initEccLib } from './ecc_lib.js';
+
+export * from './psbt/psbtutils.js';
+export * from './psbt/bip371.js';
+export * from './psbt.js';

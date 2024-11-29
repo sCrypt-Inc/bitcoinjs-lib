@@ -1152,26 +1152,26 @@ interface PsbtCache {
   __UNSAFE_SIGN_NONSEGWIT: boolean;
 }
 
-interface PsbtOptsOptional {
+export interface PsbtOptsOptional {
   network?: Network;
   maximumFeeRate?: number;
 }
 
-interface PsbtOpts {
+export interface PsbtOpts {
   network: Network;
   maximumFeeRate: number;
 }
 
-interface PsbtInputExtended extends PsbtInput, TransactionInput {}
+export interface PsbtInputExtended extends PsbtInput, TransactionInput {}
 
-type PsbtOutputExtended = PsbtOutputExtendedAddress | PsbtOutputExtendedScript;
+export type PsbtOutputExtended = PsbtOutputExtendedAddress | PsbtOutputExtendedScript;
 
-interface PsbtOutputExtendedAddress extends PsbtOutput {
+export interface PsbtOutputExtendedAddress extends PsbtOutput {
   address: string;
   value: bigint;
 }
 
-interface PsbtOutputExtendedScript extends PsbtOutput {
+export interface PsbtOutputExtendedScript extends PsbtOutput {
   script: Uint8Array;
   value: bigint;
 }
@@ -1341,7 +1341,7 @@ function hasSigs(
   return sigs.length === neededSigs;
 }
 
-function isFinalized(input: PsbtInput): boolean {
+export function isFinalized(input: PsbtInput): boolean {
   return !!input.finalScriptSig || !!input.finalScriptWitness;
 }
 
