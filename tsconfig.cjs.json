@@ -2,7 +2,7 @@
     "extends": "./tsconfig.base.json",
     "compilerOptions": {
       "declaration": true,
-      "outDir": "src/cjs",
+      "outDir": "dist/cjs",
       "module": "CommonJS",
       "esModuleInterop": true, 
     }
