@@ -140,4 +140,23 @@ for (const op of Object.keys(OPS)) {
   REVERSE_OPS[code] = op;
 }
 
-export { OPS, REVERSE_OPS };
+/**
+ * Returns true if given opcode is classified as a "success".
+ * This was taken from commit https://github.com/bitcoin/bitcoin/commit/72422ce396b8eba7b1a72c171c2f07dae691d1b5
+ * @param {Number|String} opcode
+ * @returns {Boolean}
+ */
+function isOpSuccess(opcode: number) {
+  return (
+    opcode == 80 ||
+    opcode == 98 ||
+    (opcode >= 127 && opcode <= 129) ||
+    (opcode >= 131 && opcode <= 134) ||
+    (opcode >= 137 && opcode <= 138) ||
+    (opcode >= 141 && opcode <= 142) ||
+    (opcode >= 149 && opcode <= 153) ||
+    (opcode >= 187 && opcode <= 254)
+  );
+}
+
+export { OPS, REVERSE_OPS, isOpSuccess };

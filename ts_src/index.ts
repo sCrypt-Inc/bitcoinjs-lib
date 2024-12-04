@@ -29,3 +29,6 @@ export { initEccLib } from './ecc_lib.js';
 export * from './psbt/psbtutils.js';
 export * from './psbt/bip371.js';
 export * from './psbt.js';
+export * from './interpreter.js';
+export * from './bn.js';
+export * from './bufferutils.js';

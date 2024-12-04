@@ -92,6 +92,9 @@ export const Hash160bitSchema = NBufferSchemaFactory(20);
 export const Hash256bitSchema = NBufferSchemaFactory(32);
 export const BufferSchema = v.instance(Uint8Array);
 export const HexSchema = v.pipe(v.string(), v.regex(/^([0-9a-f]{2})+$/i));
+
+export const x0HexSchema = v.pipe(v.string(), v.regex(/^0x([0-9a-f]{2})+$/i));
+
 export const UInt8Schema = v.pipe(
   v.number(),
   v.integer(),

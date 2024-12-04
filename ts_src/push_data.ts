@@ -10,6 +10,23 @@ export function encodingLength(i: number): number {
   return i < OPS.OP_PUSHDATA1 ? 1 : i <= 0xff ? 2 : i <= 0xffff ? 3 : 5;
 }
 
+export function toPushdataCode(len: number): number {
+  const size = encodingLength(len);
+  // ~6 bit
+  if (size === 1) {
+    return len;
+    // 8 bit
+  } else if (size === 2) {
+    return OPS.OP_PUSHDATA1;
+    // 16 bit
+  } else if (size === 3) {
+    return OPS.OP_PUSHDATA2;
+    // 32 bit
+  } else {
+    return OPS.OP_PUSHDATA4;
+  }
+}
+
 /**
  * Encodes a number into a buffer using a variable-length encoding scheme.
  * The encoded buffer is written starting at the specified offset.

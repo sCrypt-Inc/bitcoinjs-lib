@@ -1164,7 +1164,9 @@ export interface PsbtOpts {
 
 export interface PsbtInputExtended extends PsbtInput, TransactionInput {}
 
-export type PsbtOutputExtended = PsbtOutputExtendedAddress | PsbtOutputExtendedScript;
+export type PsbtOutputExtended =
+  | PsbtOutputExtendedAddress
+  | PsbtOutputExtendedScript;
 
 export interface PsbtOutputExtendedAddress extends PsbtOutput {
   address: string;

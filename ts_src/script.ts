@@ -41,7 +41,7 @@ export function countNonPushOnlyOPs(value: Stack): number {
   return value.length - value.filter(isPushOnlyChunk).length;
 }
 
-function asMinimalOP(buffer: Uint8Array): number | void {
+export function asMinimalOP(buffer: Uint8Array): number | void {
   if (buffer.length === 0) return OPS.OP_0;
   if (buffer.length !== 1) return;
   if (buffer[0] >= 1 && buffer[0] <= 16) return OP_INT_BASE + buffer[0];
@@ -200,14 +200,26 @@ export function toASM(chunks: Uint8Array | Array<number | Uint8Array>): string {
 export function fromASM(asm: string): Uint8Array {
   v.parse(v.string(), asm);
 
+  if (asm === '') {
+    return Uint8Array.from([]);
+  }
+
   return compile(
     asm.split(' ').map(chunkStr => {
       // opcode?
       if (OPS[chunkStr] !== undefined) return OPS[chunkStr];
-      v.parse(types.HexSchema, chunkStr);
+
+      try {
+        v.parse(types.HexSchema, chunkStr);
+
+        // data!
+        return tools.fromHex(chunkStr);
+      } catch (error) {}
+
+      v.parse(types.x0HexSchema, chunkStr);
 
       // data!
-      return tools.fromHex(chunkStr);
+      return tools.fromHex(chunkStr.slice(2));
     }),
   );
 }
@@ -236,6 +248,19 @@ export function isCanonicalPubKey(buffer: Uint8Array): boolean {
   return types.isPoint(buffer);
 }
 
+export function isUncompressedPubkey(buffer: Uint8Array): boolean {
+  if (
+    buffer instanceof Uint8Array &&
+    buffer.length === 65 &&
+    buffer[0] === 0x04 &&
+    types.isPoint(buffer)
+  ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 export function isDefinedHashType(hashType: number): boolean {
   const hashTypeMod = hashType & ~0x80;
 
@@ -248,6 +273,61 @@ export function isCanonicalScriptSignature(buffer: Uint8Array): boolean {
 
   return bip66.check(buffer.slice(0, -1));
 }
+
+export function isMinimalPush(opcodenum: number, buf: Uint8Array) {
+  if (buf.length === 0) {
+    // Could have used OP_0.
+    return opcodenum === OPS.OP_0;
+  } else if (buf.length === 1 && buf[0] >= 1 && buf[0] <= 16) {
+    // Could have used OP_1 .. OP_16.
+    return opcodenum === OPS.OP_1 + (buf[0] - 1);
+  } else if (buf.length === 1 && buf[0] === 0x81) {
+    // Could have used OP_1NEGATE
+    return opcodenum === OPS.OP_1NEGATE;
+  } else if (buf.length <= 75) {
+    // Could have used a direct push (opcode indicating number of bytes pushed + those bytes).
+    return opcodenum === buf.length;
+  } else if (buf.length <= 255) {
+    // Could have used OP_PUSHDATA.
+    return opcodenum === OPS.OP_PUSHDATA1;
+  } else if (buf.length <= 65535) {
+    // Could have used OP_PUSHDATA2.
+    return opcodenum === OPS.OP_PUSHDATA2;
+  }
+  return true;
+}
+
+function decodeOpN(opcode: number) {
+  if (opcode === OPS.OP_0) {
+    return 0;
+  }
+  return opcode - (OPS.OP_1 - 1);
+}
+
+export function createWitnessProgram(buf: Uint8Array):
+  | false
+  | {
+      version: number;
+      program: Uint8Array;
+    } {
+  if (buf.length < 4 || buf.length > 42) {
+    return false;
+  }
+  if (buf[0] !== OPS.OP_0 && !(buf[0] >= OPS.OP_1 && buf[0] <= OPS.OP_16)) {
+    return false;
+  }
+
+  if (buf.length === buf[1] + 2) {
+    return {
+      version: decodeOpN(buf[0]),
+      program: buf.slice(2, buf.length),
+    };
+  }
+
+  return false;
+}
+
+// export function findAndDelete(script: Array<number | Uint8Array>) {}
 
 export const number = scriptNumber;
 export const signature = scriptSignature;

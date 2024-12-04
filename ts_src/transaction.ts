@@ -11,6 +11,11 @@ import { OPS as opcodes } from './script.js';
 import * as types from './types.js';
 import * as tools from 'uint8array-tools';
 import * as v from 'valibot';
+const MAXINT = 0xffffffff; // Math.pow(2, 32) - 1;
+
+export function isFinal(sequenceNumber: number) {
+  return sequenceNumber !== MAXINT;
+}
 
 function varSliceSize(someScript: Uint8Array): number {
   const length = someScript.length;
