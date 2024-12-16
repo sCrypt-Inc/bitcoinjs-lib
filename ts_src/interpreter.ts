@@ -1,6 +1,12 @@
 import * as bscript from './script.js';
-import { isTxDER, SignatureVersion } from './script_signature.js';
-import { isFinal, Transaction } from './transaction.js';
+import { decode, isTxDER, SignatureVersion } from './script_signature.js';
+import {
+  isFinal,
+  Transaction,
+  varSliceSize,
+  vectorSize,
+  Output,
+} from './transaction.js';
 import { toPushdataCode } from './push_data.js';
 import { bn2Buf, buf2BN } from './bn.js';
 import { sha1 } from '@noble/hashes/sha1';
@@ -12,6 +18,9 @@ import { isOpSuccess } from './ops.js';
 import { BufferWriter } from './bufferutils.js';
 import { isUint8Array } from 'util/types';
 import { rootHashFromPath, tapleafHash, tweakKey } from './payments/bip341.js';
+import { ECPairFactory } from 'ecpair';
+import { decodeSchnorrSignature } from './psbt/bip371.js';
+import { getEccLib } from './ecc_lib.js';
 
 function requireTrue(res: boolean, message: string) {
   if (!res) {
@@ -96,6 +105,10 @@ export enum InterpreterErr {
   SCRIPT_ERR_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION = 'SCRIPT_ERR_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION',
   SCRIPT_ERR_SCHNORR_SIG_SIZE = 'SCRIPT_ERR_SCHNORR_SIG_SIZE',
   SCRIPT_ERR_SCHNORR_SIG_HASHTYPE = 'SCRIPT_ERR_SCHNORR_SIG_HASHTYPE',
+  SCRIPT_ERR_SCHNORR_SIG_NO_PREVOUTS = 'SCRIPT_ERR_SCHNORR_SIG_NO_PREVOUTS',
+  SCRIPT_ERR_EVAL_FALSE_NO_P2SH_STACK = 'SCRIPT_ERR_EVAL_FALSE_NO_P2SH_STACK',
+  SCRIPT_ERR_EVAL_FALSE_IN_P2SH_STACK = 'SCRIPT_ERR_EVAL_FALSE_IN_P2SH_STACK',
+  SCRIPT_ERR_WITNESS_MALLEATED_P2SH = 'SCRIPT_ERR_WITNESS_MALLEATED_P2SH',
   SCRIPT_ERR_UNKNOWN_ERROR = 'SCRIPT_ERR_UNKNOWN_ERROR',
 }
 
@@ -289,6 +302,8 @@ export class Interpreter {
 
   private tx: Transaction = new Transaction();
 
+  private prevOuts: Output[] | undefined = undefined;
+
   private nin: number = 0;
 
   constructor() {
@@ -330,6 +345,14 @@ export class Interpreter {
     this.tx = tx;
   }
 
+  setPrevOuts(prevOuts: Output[] | undefined) {
+    if (Array.isArray(prevOuts)) {
+      this.prevOuts = prevOuts;
+    } else {
+      this.prevOuts = undefined;
+    }
+  }
+
   setNin(nin: number) {
     this.nin = nin;
   }
@@ -362,6 +385,7 @@ export class Interpreter {
     flags: number = 0,
     witness: Uint8Array[] = [],
     satoshis: number = 0,
+    prevOuts?: Output[],
   ) {
     if (!this.setScript(scriptSig)) {
       return false;
@@ -370,6 +394,7 @@ export class Interpreter {
     this.setTx(tx);
     this.setNin(nin);
     this.setFlags(flags);
+    this.setPrevOuts(prevOuts);
 
     let stackCopy: Uint8Array[] = [];
 
@@ -390,10 +415,11 @@ export class Interpreter {
       stackCopy = this.stack.slice();
     }
 
-    const stack = this.stack;
+    let stack = this.stack;
     this.initialize();
     this.setStack(stack);
     this.setTx(tx);
+    this.setPrevOuts(prevOuts);
     this.setNin(nin);
     this.setFlags(flags);
 
@@ -441,8 +467,78 @@ export class Interpreter {
         }
       }
     }
-    //TODO: SCRIPT_VERIFY_P2SH
+    // Additional validation for spend-to-script-hash transactions:
+    if (
+      flags & Interpreter.SCRIPT_VERIFY_P2SH &&
+      bscript.isScriptHashOut(scriptPubkey)
+    ) {
+      // scriptSig must be literals-only or validation fails
+      if (!bscript.isPushOnly(scriptSig)) {
+        this.errstr = InterpreterErr.SCRIPT_ERR_SIG_PUSHONLY;
+        return false;
+      }
 
+      // stackCopy cannot be empty here, because if it was the
+      // P2SH  HASH <> EQUAL  scriptPubKey would be evaluated with
+      // an empty stack and the EvalScript above would return false.
+      if (stackCopy.length === 0) {
+        throw new Error('internal error - stack copy empty');
+      }
+
+      const redeemScript = stackCopy[stackCopy.length - 1];
+      stackCopy.pop();
+
+      this.initialize();
+      this.setScript(redeemScript);
+      this.setStack(stackCopy);
+      this.setTx(tx);
+      this.setPrevOuts(prevOuts);
+      this.setNin(nin);
+      this.setFlags(flags);
+
+      // evaluate redeemScript
+      if (!this.evaluate()) {
+        return false;
+      }
+
+      if (stackCopy.length === 0) {
+        this.errstr = InterpreterErr.SCRIPT_ERR_EVAL_FALSE_NO_P2SH_STACK;
+        return false;
+      }
+
+      if (!Interpreter.castToBool(stackCopy[stackCopy.length - 1])) {
+        this.errstr = InterpreterErr.SCRIPT_ERR_EVAL_FALSE_IN_P2SH_STACK;
+        return false;
+      }
+      if (flags & Interpreter.SCRIPT_VERIFY_WITNESS) {
+        const p2shWitnessValues = bscript.createWitnessProgram(redeemScript);
+        if (p2shWitnessValues) {
+          hadWitness = true;
+          const bw = BufferWriter.withCapacity(varSliceSize(redeemScript));
+          bw.writeVarSlice(redeemScript);
+          if (tools.toHex(scriptSig) !== tools.toHex(bw.end())) {
+            this.errstr = InterpreterErr.SCRIPT_ERR_WITNESS_MALLEATED_P2SH;
+            return false;
+          }
+
+          if (
+            !this.verifyWitnessProgram(
+              p2shWitnessValues.version,
+              p2shWitnessValues.program,
+              witness,
+              satoshis,
+              this.flags,
+              /* isP2SH */ true,
+            )
+          ) {
+            return false;
+          }
+          // Bypass the cleanstack check at the end. The actual stack is obviously not clean
+          // for witness programs.
+          stack = [stack[0]];
+        }
+      }
+    }
     // The CLEANSTACK check is only performed after potential P2SH evaluation,
     // as the non-P2SH evaluation of a P2SH script will obviously not result in
     // a clean stack (the P2SH inputs remain). The same holds for witness
@@ -482,7 +578,6 @@ export class Interpreter {
     flags: number,
     isP2SH: boolean = false,
   ) {
-    console.log('this.satoshis', this.satoshis);
     let scriptPubKey: Array<number | Uint8Array> = [];
     let stack: Array<Uint8Array> = [];
 
@@ -547,7 +642,7 @@ export class Interpreter {
     ) {
       const execdata = {
         annexPresent: false,
-        annexHash: Uint8Array.from([]),
+        annex: Uint8Array.from([]),
         annexInit: false,
         tapleafHash: Uint8Array.from([]),
         tapleafHashInit: false,
@@ -570,9 +665,7 @@ export class Interpreter {
       ) {
         // Drop annex (this is non-standard; see IsWitnessStandard)
         const annex = stack.pop() as Uint8Array;
-        const annexWriter = new BufferWriter(new Uint8Array(), 0);
-        annexWriter.writeVarSlice(annex);
-        execdata.annexHash = sha256(annexWriter.end());
+        execdata.annex = annex;
         execdata.annexPresent = true;
       }
       execdata.annexInit = true;
@@ -621,7 +714,7 @@ export class Interpreter {
           // Tapscript (leaf version 0xc0)
           let witnessSize;
           {
-            const bw = new BufferWriter(new Uint8Array(), 0);
+            const bw = BufferWriter.withCapacity(vectorSize(witness));
             bw.writeVarInt(witness.length);
             for (const element of witness) {
               bw.writeVarSlice(element);
@@ -814,7 +907,7 @@ export class Interpreter {
     let fValue, fSuccess;
     this.execdata = this.execdata || {};
     if (!this.execdata.codeseparatorPosInit) {
-      this.execdata.codeseparatorPos = 0xffffffffn;
+      this.execdata.codeseparatorPos = 0xffffffff;
       this.execdata.codeseparatorPosInit = true;
     }
 
@@ -1615,8 +1708,7 @@ export class Interpreter {
           }
           this.stack.pop();
           this.stack.pop();
-
-          this.stack.push(Buffer.concat([buf1, buf2]));
+          this.stack.push(tools.concat([buf1, buf2]));
           break;
         }
 
@@ -1789,10 +1881,13 @@ export class Interpreter {
               return false;
             }
 
+            // Subset of script starting at the most recent codeseparator
+            const subscript = this.script.slice(this.pbegincodehash);
+
             // Drop the signatures, since there's no way for a signature to sign itself
             for (let k = 0; k < nSigsCount; k++) {
               bufSig = this.stack[this.stack.length - isig - k];
-              //TODO: subscript.findAndDelete(new Script().add(bufSig));
+              bscript.findAndDelete(subscript, bufSig);
             }
 
             fSuccess = true;
@@ -1811,17 +1906,13 @@ export class Interpreter {
 
               let fOk;
               try {
-                // sig = Signature.fromTxFormat(bufSig);
-                // pubkey = PublicKey.fromBuffer(bufPubkey, false);
-                // fOk = this.tx.verifySignature(
-                //   sig,
-                //   pubkey,
-                //   this.nin,
-                //   subscript,
-                //   this.sigversion,
-                //   this.satoshis,
-                //   this.execdata,
-                // );
+                fOk = this.verifySignature(
+                  bufSig,
+                  bufPubkey,
+                  subscript,
+                  this.sigversion,
+                  this.execdata,
+                );
               } catch (e) {
                 //invalid sig or pubkey
                 fOk = false;
@@ -2054,21 +2145,20 @@ export class Interpreter {
     // Success signifies if the signature is valid.
     // Result signifies the result of this funciton, which also takes flags into account.
     const retVal = { success: false, result: false };
-    this.script.slice(this.pbegincodehash);
 
-    // TODO: const subscript = this.script.slice(this.pbegincodehash);
+    const subscript = this.script.slice(this.pbegincodehash);
 
     // Drop the signature in pre-segwit scripts but not segwit scripts
     if (this.sigversion === SignatureVersion.BASE) {
       // Drop the signature, since there's no way for a signature to sign itself
-      // TODO: const tmpScript = new Script().add(bufSig);
-      // let found = subscript.chunks.length;
-      // subscript.findAndDelete(tmpScript);
-      // found = found == subscript.chunks.length + 1; // found if a chunk was removed
-      // if (found && this.flags & Interpreter.SCRIPT_VERIFY_CONST_SCRIPTCODE) {
-      //   this.errstr = InterpreterErr.SCRIPT_ERR_SIG_FINDANDDELETE;
-      //   return retVal;
-      // }
+      const found = bscript.findAndDelete(subscript, bufSig);
+      if (
+        found > 0 &&
+        this.flags & Interpreter.SCRIPT_VERIFY_CONST_SCRIPTCODE
+      ) {
+        this.errstr = InterpreterErr.SCRIPT_ERR_SIG_FINDANDDELETE;
+        return retVal;
+      }
     }
 
     if (
@@ -2079,16 +2169,16 @@ export class Interpreter {
     }
 
     try {
-      // const sig = Signature.fromTxFormat(bufSig);
-      // const pubkey = PublicKey.fromBuffer(bufPubkey, false);
-      // retVal.success = this.tx.verifySignature(
-      //   sig,
-      //   pubkey,
-      //   this.nin,
-      //   subscript,
-      //   this.sigversion,
-      //   this.satoshis,
-      // );
+      //const sig = Signature.fromTxFormat(bufSig);
+      //const pubkey = PublicKey.fromBuffer(bufPubkey, false);
+
+      retVal.success = this.verifySignature(
+        bufSig,
+        bufPubkey,
+        subscript,
+        this.sigversion,
+        {},
+      );
     } catch (e) {
       //invalid sig or pubkey
       retVal.success = false;
@@ -2150,14 +2240,13 @@ export class Interpreter {
       return retVal;
     } else if (bufPubkey.length == 32) {
       if (
-        retVal.success
-        //TODO: &&!this.tx.checkSchnorrSignature(
-        //   bufSig,
-        //   bufPubkey,
-        //   this.nin,
-        //   this.sigversion,
-        //   this.execdata,
-        // )
+        retVal.success &&
+        !this.checkSchnorrSignature(
+          bufSig,
+          bufPubkey,
+          this.sigversion,
+          this.execdata,
+        )
       ) {
         this.errstr = InterpreterErr.SCRIPT_ERR_SCHNORR_SIG;
         return retVal;
@@ -2223,26 +2312,49 @@ export class Interpreter {
       this.errstr = InterpreterErr.SCRIPT_ERR_SCHNORR_SIG_HASHTYPE;
       return false;
     }
-    // sig = Signature.fromSchnorr(sig);
-    // const verified = SighashSchnorr.verify(
-    //   this.tx,
-    //   sig,
-    //   pubkey,
-    //   sigversion,
-    //   this.nin,
-    //   execdata,
-    // );
-    return true;
+
+    if (!Array.isArray(this.prevOuts)) {
+      this.errstr = InterpreterErr.SCRIPT_ERR_SCHNORR_SIG_NO_PREVOUTS;
+      return false;
+    }
+    const decodedSig = decodeSchnorrSignature(sig);
+
+    requireTrue(execdata.annexInit, 'missing or invalid annexInit');
+
+    if (sigversion === SignatureVersion.TAPSCRIPT) {
+      requireTrue(
+        execdata.tapleafHashInit,
+        'missing or invalid tapleafHashInit',
+      );
+      requireTrue(
+        execdata.codeseparatorPosInit,
+        'missing or invalid codeseparatorPosInit',
+      );
+    }
+
+    const msghash = this.tx.hashForWitnessV1(
+      this.nin,
+      this.prevOuts.map(out => out.script),
+      this.prevOuts.map(out => out.value),
+      decodedSig.hashType,
+      sigversion === SignatureVersion.TAPSCRIPT
+        ? execdata.tapleafHash
+        : undefined,
+      execdata.annexPresent ? execdata.annex : undefined,
+      sigversion === SignatureVersion.TAPSCRIPT
+        ? execdata.codeseparatorPos
+        : undefined,
+    );
+    const ecc = getEccLib();
+
+    const verified = ecc.verifySchnorr!(msghash, pubkey, decodedSig.signature);
+    return verified;
   }
 
   static computeTapleafHash(
     leafVersion: number,
     scriptBuf: Uint8Array,
   ): Uint8Array {
-    // const tagWriter = TaggedHash.TAPLEAF;
-    // tagWriter.writeUInt8(leafVersion);
-    // tagWriter.writeVarintNum(scriptBuf.length);
-    // tagWriter.write(scriptBuf);
     return tapleafHash({
       version: leafVersion,
       output: scriptBuf,
@@ -2337,7 +2449,7 @@ export class Interpreter {
     if (
       (this.flags & Interpreter.SCRIPT_VERIFY_WITNESS_PUBKEYTYPE) != 0 &&
       this.sigversion == SignatureVersion.WITNESS_V0 &&
-      !bscript.isUncompressedPubkey(buf)
+      bscript.isUncompressedPubkey(buf)
     ) {
       this.errstr = InterpreterErr.SCRIPT_ERR_WITNESS_PUBKEYTYPE;
       return false;
@@ -2366,5 +2478,84 @@ export class Interpreter {
     );
 
     return true;
+  }
+
+  /**
+   * This is here largely for legacy reasons. However, if the sig type
+   * is already known (via sigversion), then it would be better to call
+   * checkEcdsaSignature or checkSchnorrSignature directly.
+   * @param {Signature|Buffer} sig Signature to verify
+   * @param {PublicKey|Buffer} pubkey Public key used to verify sig
+   * @param {Number} nin Tx input index to verify signature against
+   * @param {Script} subscript ECDSA only
+   * @param {Number} sigversion See Signature.Version for valid versions (default: 0 or Signature.Version.BASE)
+   * @param {Number} satoshis ECDSA only
+   * @param {Object} execdata Schnorr only
+   * @returns {Boolean} whether the signature is valid for this transaction input
+   */
+  verifySignature(
+    sig: Uint8Array,
+    pubkey: Uint8Array,
+    subscript: Array<number | Uint8Array>,
+    sigversion: SignatureVersion,
+    execdata: any,
+  ) {
+    switch (sigversion) {
+      case SignatureVersion.WITNESS_V0:
+        return this.checkEcdsaSignature(sig, pubkey, subscript);
+      case SignatureVersion.TAPROOT:
+      case SignatureVersion.TAPSCRIPT:
+        return this.checkSchnorrSignature(sig, pubkey, sigversion, execdata);
+      case SignatureVersion.BASE:
+      default: {
+        const decodedSig = decode(sig, false);
+
+        const msghash = this.tx.hashForSignature(
+          this.nin,
+          bscript.compile(subscript),
+          decodedSig.hashType,
+        );
+
+        const ECPair = ECPairFactory(getEccLib() as any);
+
+        const success = ECPair.fromPublicKey(pubkey).verify(
+          msghash,
+          decodedSig.signature,
+        );
+
+        return success;
+      }
+    }
+  }
+
+  /**
+   * Verify ECDSA signature
+   * @param {Signature} _sig
+   * @param {PublicKey} _pubkey
+   * @param {Number} _nin
+   * @param {Script} _subscript
+   * @param {Number} _satoshis
+   * @returns {Boolean}
+   */
+  checkEcdsaSignature(
+    sig: Uint8Array,
+    pubkey: Uint8Array,
+    subscript: Array<number | Uint8Array>,
+  ) {
+    const decodedSig = decode(sig, false);
+
+    const msghash = this.tx.hashForWitnessV0(
+      this.nin,
+      bscript.compile(subscript),
+      BigInt(this.satoshis),
+      decodedSig.hashType,
+    );
+    const ECPair = ECPairFactory(getEccLib() as any);
+
+    const success = ECPair.fromPublicKey(pubkey).verify(
+      msghash,
+      decodedSig.signature,
+    );
+    return success;
   }
 }

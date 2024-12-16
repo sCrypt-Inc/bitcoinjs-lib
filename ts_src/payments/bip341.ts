@@ -113,7 +113,8 @@ export function findScriptPath(
  * @returns The tapleaf hash as a Buffer.
  */
 export function tapleafHash(leaf: Tapleaf): Uint8Array {
-  const version = leaf.version || LEAF_VERSION_TAPSCRIPT;
+  const version =
+    typeof leaf.version === 'number' ? leaf.version : LEAF_VERSION_TAPSCRIPT;
   return bcrypto.taggedHash(
     'TapLeaf',
     tools.concat([Uint8Array.from([version]), serializeScript(leaf.output)]),

@@ -85,6 +85,15 @@ export interface TinySecp256k1Interface {
     p: Uint8Array,
     tweak: Uint8Array,
   ): XOnlyPointAddTweakResult | null;
+  sign(h: Uint8Array, d: Uint8Array, e?: Uint8Array): Uint8Array;
+  signSchnorr?(h: Uint8Array, d: Uint8Array, e?: Uint8Array): Uint8Array;
+  verify(
+    h: Uint8Array,
+    Q: Uint8Array,
+    signature: Uint8Array,
+    strict?: boolean,
+  ): boolean;
+  verifySchnorr?(h: Uint8Array, Q: Uint8Array, signature: Uint8Array): boolean;
 }
 
 export const Buffer256bitSchema = NBufferSchemaFactory(32);

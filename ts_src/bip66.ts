@@ -73,6 +73,47 @@ export function decode(buffer: Uint8Array): { r: Uint8Array; s: Uint8Array } {
   };
 }
 
+/**
+ * In order to mimic the non-strict DER encoding of OpenSSL, set strict = false.
+ */
+export function parseDER(
+  buf: Uint8Array,
+  strict: boolean = false,
+): { r: Uint8Array; s: Uint8Array } {
+  const header = buf[0];
+  if (!(header === 0x30)) throw new Error('Header byte should be 0x30');
+
+  let length = buf[1];
+  const buflength = buf.slice(2).length;
+  if (!(!strict || length === buflength))
+    throw new Error('Length byte should length of what follows');
+
+  length = length < buflength ? length : buflength;
+
+  const rheader = buf[2 + 0];
+  if (!(rheader === 0x02)) throw new Error('Integer byte for r should be 0x02');
+
+  const rlength = buf[2 + 1];
+  const rbuf = buf.slice(2 + 2, 2 + 2 + rlength);
+  if (!(rlength === rbuf.length)) throw new Error('Length of r incorrect');
+
+  const sheader = buf[2 + 2 + rlength + 0];
+  if (!(sheader === 0x02)) throw new Error('Integer byte for s should be 0x02');
+
+  const slength = buf[2 + 2 + rlength + 1];
+  const sbuf = buf.slice(2 + 2 + rlength + 2, 2 + 2 + rlength + 2 + slength);
+  if (!(slength === sbuf.length)) throw new Error('Length of s incorrect');
+
+  const sumlength = 2 + 2 + rlength + 2 + slength;
+  if (!(length === sumlength - 2))
+    throw new Error('Length of signature incorrect');
+
+  return {
+    r: rbuf,
+    s: sbuf,
+  };
+}
+
 /*
  * Expects r and s to be positive DER integers.
  *

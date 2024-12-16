@@ -53,17 +53,28 @@ export enum SignatureVersion {
  * @returns The decoded ScriptSignature object.
  * @throws Error if the hashType is invalid.
  */
-export function decode(buffer: Uint8Array): ScriptSignature {
+export function decode(
+  buffer: Uint8Array,
+  strict: boolean = true,
+): ScriptSignature {
   const hashType = tools.readUInt8(buffer, buffer.length - 1);
-  if (!isDefinedHashType(hashType)) {
+  if (strict && !isDefinedHashType(hashType)) {
     throw new Error('Invalid hashType ' + hashType);
   }
+  let decoded: { r: Uint8Array; s: Uint8Array };
+  try {
+    decoded = bip66.decode(buffer.subarray(0, -1));
+  } catch (error) {
+    if (strict) {
+      throw error;
+    } else {
+      decoded = bip66.parseDER(buffer.subarray(0, -1));
+    }
+  }
 
-  const decoded = bip66.decode(buffer.subarray(0, -1));
   const r = fromDER(decoded.r);
   const s = fromDER(decoded.s);
   const signature = tools.concat([r, s]);
-
   return { signature, hashType };
 }
 

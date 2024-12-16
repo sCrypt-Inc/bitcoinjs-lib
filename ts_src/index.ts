@@ -23,7 +23,15 @@ export {
   Stack,
   StackElement,
 } from './payments/index.js';
-export { Input as TxInput, Output as TxOutput } from './transaction.js';
+export {
+  Input as TxInput,
+  Output as TxOutput,
+  isNullInput,
+  readOutput,
+  isFinal,
+  varSliceSize,
+  vectorSize,
+} from './transaction.js';
 export { initEccLib } from './ecc_lib.js';
 
 export * from './psbt/psbtutils.js';

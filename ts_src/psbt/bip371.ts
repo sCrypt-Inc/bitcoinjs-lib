@@ -271,7 +271,7 @@ export function checkTaprootInputForSigs(
  * @param signature The signature to decode.
  * @returns The decoded Schnorr signature.
  */
-function decodeSchnorrSignature(signature: Uint8Array): {
+export function decodeSchnorrSignature(signature: Uint8Array): {
   signature: Uint8Array;
   hashType: number;
 } {

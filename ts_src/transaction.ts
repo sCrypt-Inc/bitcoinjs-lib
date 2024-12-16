@@ -17,13 +17,17 @@ export function isFinal(sequenceNumber: number) {
   return sequenceNumber !== MAXINT;
 }
 
-function varSliceSize(someScript: Uint8Array): number {
+export function isNullInput(input: Input) {
+  return tools.compare(input.hash, ZERO) === 0 && input.index === 0xffffffff;
+}
+
+export function varSliceSize(someScript: Uint8Array): number {
   const length = someScript.length;
 
   return varuint.encodingLength(length) + length;
 }
 
-function vectorSize(someVector: Uint8Array[]): number {
+export function vectorSize(someVector: Uint8Array[]): number {
   const length = someVector.length;
 
   return (
@@ -40,7 +44,7 @@ const ZERO = tools.fromHex(
   '0000000000000000000000000000000000000000000000000000000000000000',
 );
 const ONE = tools.fromHex(
-  '0000000000000000000000000000000000000000000000000000000000000001',
+  '0100000000000000000000000000000000000000000000000000000000000000',
 );
 const VALUE_UINT64_MAX = tools.fromHex('ffffffffffffffff');
 const BLANK_OUTPUT = {
@@ -50,6 +54,14 @@ const BLANK_OUTPUT = {
 
 function isOutput(out: Output): boolean {
   return out.value !== undefined;
+}
+
+export function readOutput(buffer: Uint8Array) {
+  const bufferReader = new BufferReader(buffer);
+  return {
+    value: bufferReader.readInt64(),
+    script: bufferReader.readVarSlice(),
+  };
 }
 
 export interface Output {
@@ -361,6 +373,7 @@ export class Transaction {
     hashType: number,
     leafHash?: Uint8Array,
     annex?: Uint8Array,
+    codeseparatorPos?: number,
   ): Uint8Array {
     // https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki#common-signature-message
     v.parse(
@@ -497,7 +510,9 @@ export class Transaction {
     if (leafHash) {
       sigMsgWriter.writeSlice(leafHash);
       sigMsgWriter.writeUInt8(0);
-      sigMsgWriter.writeUInt32(0xffffffff);
+      sigMsgWriter.writeUInt32(
+        typeof codeseparatorPos === 'number' ? codeseparatorPos : 0xffffffff,
+      );
     }
 
     // Extra zero byte because:
@@ -693,4 +708,81 @@ export class Transaction {
       return buffer.slice(initialOffset, bufferWriter.offset);
     return buffer;
   }
+
+  /**
+   * Check that a transaction passes basic sanity tests. If not, return a string
+   * describing the error. This function contains the same logic as
+   * CheckTransaction in bitcoin core.
+   */
+  verify() {
+    // Basic checks that don't depend on any context
+    if (this.ins.length === 0) {
+      return 'transaction txins empty';
+    }
+
+    if (this.outs.length === 0) {
+      return 'transaction txouts empty';
+    }
+
+    // Check for negative or overflow output values
+    let valueoutbn = BigInt(0);
+    for (let i = 0; i < this.outs.length; i++) {
+      const txout = this.outs[i];
+
+      if (invalidSatoshis(txout.value)) {
+        return 'transaction txout ' + i + ' satoshis is invalid';
+      }
+
+      valueoutbn += txout.value;
+      if (invalidSatoshis(valueoutbn)) {
+        return (
+          'transaction txout ' + i + ' total output greater than MAX_MONEY'
+        );
+      }
+    }
+    const MAX_BLOCK_SIZE = 1000000;
+    // Size limits
+    if (this.toBuffer().length > MAX_BLOCK_SIZE) {
+      return 'transaction over the maximum block size';
+    }
+
+    // Check for duplicate inputs
+    const txinmap: any = {};
+    for (let i = 0; i < this.ins.length; i++) {
+      const txin = this.ins[i];
+
+      const inputid = tools.toHex(txin.hash) + ':' + txin.index;
+      if (txinmap[inputid] === true) {
+        return 'transaction input ' + i + ' duplicate input';
+      }
+      txinmap[inputid] = true;
+    }
+
+    const isCoinbase = this.isCoinbase();
+    if (isCoinbase) {
+      const buf = this.ins[0].script;
+      if (buf.length < 2 || buf.length > 100) {
+        return 'coinbase transaction script size invalid';
+      }
+    } else {
+      for (let i = 0; i < this.ins.length; i++) {
+        if (isNullInput(this.ins[i])) {
+          return 'transaction input ' + i + ' has null input';
+        }
+      }
+    }
+    return true;
+  }
+}
+
+const MAX_MONEY = BigInt(21000000 * 1e8);
+function invalidSatoshis(value: bigint) {
+  if (value > MAX_MONEY) {
+    return true;
+  }
+
+  if (value < BigInt(0)) {
+    return true;
+  }
+  return false;
 }

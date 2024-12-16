@@ -47,7 +47,8 @@
     "nobuild:coverage-html": "c8 report --reporter=html",
     "nobuild:coverage": "c8 --check-coverage --branches 85 --functions 90 --lines 90 npm run nobuild:unit",
     "nobuild:integration": "npm run mocha:ts -- --timeout 50000 'test/integration/*.ts'",
-    "nobuild:unit": "npm run mocha:ts -- 'test/interpreter.spec.ts'",
+    "nobuild:unit": "npm run mocha:ts -- 'test/*.spec.ts'",
+    "td": "npm run nobuild:unit",
     "prettier": "prettier \"ts_src/**/*.ts\" \"test/**/*.ts\" --ignore-path ./.prettierignore",
     "test": "npm run build && npm run format:ci && npm run lint && npm run nobuild:coverage",
     "unit": "npm run nobuild:unit"

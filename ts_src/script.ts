@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import * as bip66 from './bip66.js';
-import { OPS, REVERSE_OPS } from './ops.js';
+import { isOpSuccess, OPS, REVERSE_OPS } from './ops.js';
 import { Stack } from './payments/index.js';
 import * as pushdata from './push_data.js';
 import * as scriptNumber from './script_number.js';
@@ -30,10 +30,26 @@ function isPushOnlyChunk(value: number | Uint8Array): boolean {
   return v.is(types.BufferSchema, value) || isOPInt(value as number);
 }
 
-export function isPushOnly(value: Stack): boolean {
+export function isPushOnly(value: Stack | Uint8Array): boolean {
+  if (value instanceof Uint8Array) {
+    const res = decompile(value);
+    if (res === null) {
+      throw new Error('script is invalid!');
+    }
+    value = res;
+  }
   return v.is(
     v.pipe(v.any(), v.everyItem(isPushOnlyChunk as (x: any) => boolean)),
     value,
+  );
+}
+
+export function isScriptHashOut(value: Uint8Array): boolean {
+  return (
+    value.length === 23 &&
+    value[0] === OPS.OP_HASH160 &&
+    value[1] === 0x14 &&
+    value[value.length - 1] === OPS.OP_EQUAL
   );
 }
 
@@ -156,6 +172,11 @@ export function decompile(
       // opcode
     } else {
       chunks.push(opcode);
+
+      if (isOpSuccess(opcode)) {
+        chunks.push(buffer.slice(i + 1));
+        break;
+      }
 
       i += 1;
     }
@@ -327,7 +348,34 @@ export function createWitnessProgram(buf: Uint8Array):
   return false;
 }
 
-// export function findAndDelete(script: Array<number | Uint8Array>) {}
+/**
+ * Analogous to bitcoind's FindAndDelete. Find and delete equivalent chunks,
+ * typically used with push data chunks.  Note that this will find and delete
+ * not just the same data, but the same data with the same push data op as
+ * produced by default. i.e., if a pushdata in a tx does not use the minimal
+ * pushdata op, then when you try to remove the data it is pushing, it will not
+ * be removed, because they do not use the same pushdata op.
+ */
+export function findAndDelete(
+  script: Array<number | Uint8Array>,
+  subScript: Uint8Array,
+) {
+  let nFound = 0;
+  if (subScript.length === 0) {
+    return nFound;
+  }
+
+  let pc = 0;
+
+  do {
+    const chunk = script[pc];
+    if (chunk instanceof Uint8Array && tools.compare(chunk, subScript) === 0) {
+      script.splice(pc, 1);
+      ++nFound;
+    }
+  } while (pc++ < script.length);
+  return nFound;
+}
 
 export const number = scriptNumber;
 export const signature = scriptSignature;
