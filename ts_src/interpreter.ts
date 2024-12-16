@@ -330,7 +330,10 @@ export class Interpreter {
 
   setScript(script: Uint8Array | Array<number | Uint8Array>) {
     if (script instanceof Uint8Array) {
-      const res = bscript.decompile(script);
+      const fRequireMinimal =
+        (this.flags & Interpreter.SCRIPT_VERIFY_MINIMALDATA) !== 0;
+
+      const res = bscript.decompile(script, fRequireMinimal);
       if (res === null) {
         return false;
       }
@@ -387,14 +390,13 @@ export class Interpreter {
     satoshis: number = 0,
     prevOuts?: Output[],
   ) {
-    if (!this.setScript(scriptSig)) {
-      return false;
-    }
-
     this.setTx(tx);
     this.setNin(nin);
     this.setFlags(flags);
     this.setPrevOuts(prevOuts);
+    if (!this.setScript(scriptSig)) {
+      return false;
+    }
 
     let stackCopy: Uint8Array[] = [];
 
@@ -489,12 +491,12 @@ export class Interpreter {
       stackCopy.pop();
 
       this.initialize();
-      this.setScript(redeemScript);
       this.setStack(stackCopy);
       this.setTx(tx);
       this.setPrevOuts(prevOuts);
       this.setNin(nin);
       this.setFlags(flags);
+      this.setScript(redeemScript);
 
       // evaluate redeemScript
       if (!this.evaluate()) {
@@ -804,12 +806,12 @@ export class Interpreter {
 
     this.initialize();
 
-    this.setScript(scriptPubKey);
     this.setStack(stack);
     this.setSigversion(sigversion);
     this.setSatoshis(satoshis);
     this.setFlags(flags);
     this.setExecdata(execdata);
+    this.setScript(scriptPubKey);
 
     if (!this.evaluate()) {
       return false;

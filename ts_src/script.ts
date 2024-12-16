@@ -135,6 +135,7 @@ export function compile(chunks: Uint8Array | Stack): Uint8Array {
 
 export function decompile(
   buffer: Uint8Array | Array<number | Uint8Array>,
+  fRequireMinimal: boolean = false,
 ): Array<number | Uint8Array> | null {
   // TODO: remove me
   if (chunksIsArray(buffer)) return buffer;
@@ -161,6 +162,10 @@ export function decompile(
       const data = buffer.slice(i, i + d.number);
       i += d.number;
 
+      if (fRequireMinimal && !checkMinimalPush(opcode, data)) {
+        return null;
+      }
+
       // decompile minimally
       const op = asMinimalOP(data);
       if (op !== undefined) {
@@ -183,6 +188,33 @@ export function decompile(
   }
 
   return chunks;
+}
+
+/**
+ * Comes from bitcoind's script interpreter CheckMinimalPush function
+ * @returns {boolean} if the chunk {i} is the smallest way to push that particular data.
+ */
+export function checkMinimalPush(opcodenum: number, buf: Uint8Array) {
+  if (buf.length === 0) {
+    // Could have used OP_0.
+    return opcodenum === OPS.OP_0;
+  } else if (buf.length === 1 && buf[0] >= 1 && buf[0] <= 16) {
+    // Could have used OP_1 .. OP_16.
+    return opcodenum === OPS.OP_1 + (buf[0] - 1);
+  } else if (buf.length === 1 && buf[0] === 0x81) {
+    // Could have used OP_1NEGATE
+    return opcodenum === OPS.OP_1NEGATE;
+  } else if (buf.length <= 75) {
+    // Could have used a direct push (opcode indicating number of bytes pushed + those bytes).
+    return opcodenum === buf.length;
+  } else if (buf.length <= 255) {
+    // Could have used OP_PUSHDATA.
+    return opcodenum === OPS.OP_PUSHDATA1;
+  } else if (buf.length <= 65535) {
+    // Could have used OP_PUSHDATA2.
+    return opcodenum === OPS.OP_PUSHDATA2;
+  }
+  return true;
 }
 
 /**
