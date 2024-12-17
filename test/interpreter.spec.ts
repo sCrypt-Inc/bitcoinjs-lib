@@ -11,7 +11,7 @@ import {
   TxOutput,
 } from 'bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
-import script_tests from './fixtures/scripts/script_tests.json' ;
+import script_tests from './fixtures/scripts/script_tests.json';
 import script_asset_tests from './fixtures/scripts/script_assets_test.json';
 import tx_valid from './fixtures/scripts/tx_valid.json';
 import tx_invalid from './fixtures/scripts/tx_invalid.json';
