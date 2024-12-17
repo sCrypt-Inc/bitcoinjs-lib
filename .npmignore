@@ -1,0 +1,17 @@
+tsconfig.json
+tsconfig.base.json
+tsconfig.cjs.json
+typedoc.json
+.mocharc.json
+.nsprc
+.prettierrc.json
+.prettierignore
+eslint.config.js
+ts_src/
+test/
+logo/
+.github/
+.vscode/
+coverage/
+docs
+*.log
