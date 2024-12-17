@@ -1,13 +1,13 @@
 import * as assert from 'assert';
 import { describe, it } from 'mocha';
 import * as ecc from 'tiny-secp256k1';
-import { address as baddress } from 'bitcoinjs-lib';
-import { script as bscript } from 'bitcoinjs-lib';
+import { address as baddress } from '@scrypt-inc/bitcoinjs-lib';
+import { script as bscript } from '@scrypt-inc/bitcoinjs-lib';
 import fixtures from './fixtures/address.json';
 import * as tools from 'uint8array-tools';
-import { networks } from 'bitcoinjs-lib';
+import { networks } from '@scrypt-inc/bitcoinjs-lib';
 
-import { initEccLib } from 'bitcoinjs-lib';
+import { initEccLib } from '@scrypt-inc/bitcoinjs-lib';
 
 const NETWORKS: Record<string, networks.Network> = {
   ...networks,

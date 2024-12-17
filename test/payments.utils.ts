@@ -1,8 +1,7 @@
 import * as t from 'assert';
-import * as BNETWORKS from 'bitcoinjs-lib/src/networks';
-import * as bscript from 'bitcoinjs-lib/src/script';
+import { networks as BNETWORKS } from '@scrypt-inc/bitcoinjs-lib';
+import { script as bscript } from '@scrypt-inc/bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
-import { isTaptree } from 'bitcoinjs-lib/src/types';
 
 function tryHex(x: Uint8Array | Uint8Array[]): string | string[] {
   if (x instanceof Uint8Array) return tools.toHex(x);

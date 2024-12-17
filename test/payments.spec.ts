@@ -1,10 +1,10 @@
 import * as assert from 'assert';
 import * as ecc from 'tiny-secp256k1';
 import { describe, it, before, beforeEach } from 'mocha';
-import { PaymentCreator } from 'bitcoinjs-lib';
+import { PaymentCreator } from '@scrypt-inc/bitcoinjs-lib';
 import * as u from './payments.utils.js';
-import { initEccLib } from 'bitcoinjs-lib';
-import { payments } from 'bitcoinjs-lib';
+import { initEccLib } from '@scrypt-inc/bitcoinjs-lib';
+import { payments } from '@scrypt-inc/bitcoinjs-lib';
 const {
   embed: p2data,
   p2ms,

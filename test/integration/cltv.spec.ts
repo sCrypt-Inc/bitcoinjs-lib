@@ -2,9 +2,9 @@ import * as assert from 'assert';
 import ECPairFactory from 'ecpair';
 import * as ecc from 'tiny-secp256k1';
 import { before, describe, it } from 'mocha';
-import * as bitcoin from 'bitcoinjs-lib';
+import * as bitcoin from '@scrypt-inc/bitcoinjs-lib';
 import { regtestUtils } from './_regtest.js';
-import { reverseBuffer } from 'bitcoinjs-lib/src/bufferutils';
+import { reverseBuffer } from '@scrypt-inc/bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
 
 const ECPair = ECPairFactory(ecc);

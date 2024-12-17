@@ -1,10 +1,9 @@
 import * as assert from 'assert';
 import { describe, it } from 'mocha';
-import { crypto as bcrypto } from 'bitcoinjs-lib';
-import type { TaggedHashPrefix } from 'bitcoinjs-lib';
+import { crypto as bcrypto } from '@scrypt-inc/bitcoinjs-lib';
+import type { TaggedHashPrefix } from '@scrypt-inc/bitcoinjs-lib';
 import fixtures from './fixtures/crypto.json';
 import * as tools from 'uint8array-tools';
-import { TAGS, TAGGED_HASH_PREFIXES } from 'bitcoinjs-lib/src/crypto';
 import { sha256 } from '@noble/hashes/sha256';
 
 describe('crypto', () => {
@@ -29,7 +28,10 @@ describe('crypto', () => {
       const bytes = Buffer.from(f.hex, 'hex');
       const expected = f.result;
       it(`returns ${f.result} for taggedHash "${f.tag}" of ${f.hex}`, () => {
-        const actual = bcrypto.taggedHash(f.tag as TaggedHashPrefix, bytes);
+        const actual = bcrypto.taggedHash(
+          f.tag as bcrypto.TaggedHashPrefix,
+          bytes,
+        );
         assert.strictEqual(tools.toHex(actual), expected);
       });
     });
@@ -37,14 +39,14 @@ describe('crypto', () => {
 
   describe('TAGGED_HASH_PREFIXES', () => {
     const taggedHashPrefixes = Object.fromEntries(
-      TAGS.map((tag: TaggedHashPrefix) => {
+      bcrypto.TAGS.map((tag: TaggedHashPrefix) => {
         const tagHash = sha256(Buffer.from(tag));
         return [tag, tools.concat([tagHash, tagHash])];
       }),
     );
     it('stored the result of operation', () => {
       assert.strictEqual(
-        JSON.stringify(TAGGED_HASH_PREFIXES),
+        JSON.stringify(bcrypto.TAGGED_HASH_PREFIXES),
         JSON.stringify(taggedHashPrefixes),
       );
     });

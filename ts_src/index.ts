@@ -3,9 +3,12 @@ import * as crypto from './crypto.js';
 import * as networks from './networks.js';
 import * as payments from './payments/index.js';
 import * as script from './script.js';
+import * as scriptNumber from './script_number.js';
+import * as types from './types.js';
 
-export { address, crypto, networks, payments, script };
+export { address, crypto, networks, payments, script, scriptNumber, types };
 
+export { Tapleaf, Taptree, TAPLEAF_VERSION_MASK } from './types.js';
 export { Block } from './block.js';
 /** @hidden */
 export { TaggedHashPrefix } from './crypto.js';
@@ -22,6 +25,8 @@ export {
   PaymentOpts,
   Stack,
   StackElement,
+  LEAF_VERSION_TAPSCRIPT,
+  tapleafHash,
 } from './payments/index.js';
 export {
   Input as TxInput,

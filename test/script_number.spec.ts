@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { describe, it } from 'mocha';
-import * as scriptNumber from 'bitcoinjs-lib/src/script_number';
+import { scriptNumber } from '@scrypt-inc/bitcoinjs-lib';
 import fixtures from './fixtures/script_number.json';
 import * as tools from 'uint8array-tools';
 

@@ -52,5 +52,6 @@ export type StackFunction = () => Stack;
 
 export { embed, p2ms, p2pk, p2pkh, p2sh, p2wpkh, p2wsh, p2tr };
 
+export * from './bip341.js';
 // TODO
 // witness commitment

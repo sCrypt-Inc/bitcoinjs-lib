@@ -6,10 +6,9 @@ import ECPairFactory from 'ecpair';
 import { describe, it } from 'mocha';
 
 import { convertScriptTree } from './payments.utils.js';
-import { LEAF_VERSION_TAPSCRIPT } from 'bitcoinjs-lib/src/payments/bip341';
-import { tapTreeToList, tapTreeFromList } from 'bitcoinjs-lib/src/psbt/bip371';
-import type { Taptree } from 'bitcoinjs-lib/src/types';
-import { initEccLib } from 'bitcoinjs-lib';
+import { tapTreeToList, tapTreeFromList } from '@scrypt-inc/bitcoinjs-lib';
+import type { Taptree } from '@scrypt-inc/bitcoinjs-lib';
+import { initEccLib } from '@scrypt-inc/bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
 
 const rng = (size: number) => crypto.randomBytes(size);
@@ -1138,7 +1137,7 @@ describe(`Psbt`, () => {
         .forEach(scriptTree => {
           const originalTree = convertScriptTree(
             scriptTree,
-            LEAF_VERSION_TAPSCRIPT,
+            payments.LEAF_VERSION_TAPSCRIPT,
           );
           const list = tapTreeToList(originalTree);
           const treeFromList = tapTreeFromList(list);
@@ -1150,7 +1149,7 @@ describe(`Psbt`, () => {
     it('Throws if too many leaves on a given level', () => {
       const list = Array.from({ length: 5 }).map(() => ({
         depth: 2,
-        leafVersion: LEAF_VERSION_TAPSCRIPT,
+        leafVersion: payments.LEAF_VERSION_TAPSCRIPT,
         script: Buffer.from([]),
       }));
       assert.throws(() => {
@@ -1175,7 +1174,7 @@ describe(`Psbt`, () => {
       const list = [
         {
           depth: 129,
-          leafVersion: LEAF_VERSION_TAPSCRIPT,
+          leafVersion: payments.LEAF_VERSION_TAPSCRIPT,
           script: Buffer.from([]),
         },
       ];

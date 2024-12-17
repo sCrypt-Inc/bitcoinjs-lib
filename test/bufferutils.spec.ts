@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { describe, it } from 'mocha';
-import { BufferReader, BufferWriter } from 'bitcoinjs-lib/src/bufferutils';
+import { BufferReader, BufferWriter } from '@scrypt-inc/bitcoinjs-lib';
 
 import * as varuint from 'varuint-bitcoin';
 

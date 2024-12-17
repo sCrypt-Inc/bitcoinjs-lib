@@ -5,18 +5,15 @@ import * as ecc from 'tiny-secp256k1';
 import { describe, it } from 'mocha';
 import { PsbtInput, TapLeaf, TapLeafScript } from 'bip174';
 import { regtestUtils } from './_regtest.js';
-import * as bitcoin from 'bitcoinjs-lib';
-import { Taptree } from 'bitcoinjs-lib/src/types';
-import {
-  LEAF_VERSION_TAPSCRIPT,
-  tapleafHash,
-} from 'bitcoinjs-lib/src/payments/bip341';
+import * as bitcoin from '@scrypt-inc/bitcoinjs-lib';
+import { Taptree } from '@scrypt-inc/bitcoinjs-lib';
+import { LEAF_VERSION_TAPSCRIPT, tapleafHash } from '@scrypt-inc/bitcoinjs-lib';
 import {
   toXOnly,
   tapTreeToList,
   tapTreeFromList,
-} from 'bitcoinjs-lib/src/psbt/bip371';
-import { witnessStackToScriptWitness } from 'bitcoinjs-lib/src/psbt/psbtutils';
+} from '@scrypt-inc/bitcoinjs-lib';
+import { witnessStackToScriptWitness } from '@scrypt-inc/bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
 import { sha256 } from '@noble/hashes/sha256';
 import { randomBytes } from 'crypto';
