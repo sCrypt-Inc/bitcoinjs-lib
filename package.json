@@ -1,6 +1,6 @@
 {
-  "name": "bitcoinjs-lib",
-  "version": "7.0.0-rc.0",
+  "name": "@scrypt-inc/bitcoinjs-lib",
+  "version": "1.0.0",
   "description": "Client-side Bitcoin JavaScript library",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -26,7 +26,8 @@
     "bitcoin",
     "browserify",
     "javascript",
-    "bitcoinjs"
+    "bitcoinjs",
+    "sCrypt"
   ],
   "scripts": {
     "audit": "better-npm-audit audit -l high",
@@ -55,10 +56,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/bitcoinjs/bitcoinjs-lib.git"
+    "url": "https://github.com/sCrypt-Inc/bitcoinjs-lib.git"
   },
   "files": [
-    "src"
+    "dist"
   ],
   "dependencies": {
     "@noble/hashes": "^1.2.0",
