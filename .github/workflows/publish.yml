@@ -27,6 +27,6 @@ jobs:
       - name: Verify Versions
         run: node -e "if ('refs/tags/v' + require('./package.json').version !== '${{ github.ref }}') { console.log('::error' + 'Version Mismatch. refs/tags/v' + require('./package.json').version, '${{ github.ref }}'); throw Error('Version Mismatch')} "
       - name: Publish
-        run: npm publish
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_BITCOINJS }}
