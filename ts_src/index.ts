@@ -14,7 +14,11 @@ export { Block } from './block.js';
 export { TaggedHashPrefix } from './crypto.js';
 
 /** @hidden */
-export { OPS as opcodes } from './ops.js';
+export {
+  OPS as opcodes,
+  REVERSE_OPS as reverse_opcodes,
+  isOpSuccess,
+} from './ops.js';
 export { Transaction } from './transaction.js';
 /** @hidden */
 export { Network } from './networks.js';
