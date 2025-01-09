@@ -1,21 +1,30 @@
-import * as address from './address.js';
-import * as crypto from './crypto.js';
-import * as networks from './networks.js';
-import * as payments from './payments/index.js';
-import * as script from './script.js';
-import * as scriptNumber from './script_number.js';
-import * as types from './types.js';
+export * as address from './address.js';
+export * as crypto from './crypto.js';
+export * as networks from './networks.js';
+export * as payments from './payments/index.js';
+export * as script from './script.js';
 
-export { address, crypto, networks, payments, script, scriptNumber, types };
-
-export { Tapleaf, Taptree, TAPLEAF_VERSION_MASK } from './types.js';
 export { Block } from './block.js';
 /** @hidden */
 export { TaggedHashPrefix } from './crypto.js';
-
+export {
+  Psbt,
+  PsbtTxInput,
+  PsbtTxOutput,
+  Signer,
+  SignerAsync,
+  HDSigner,
+  HDSignerAsync,
+  toXOnly,
+  // scrypt exports
+  TransactionInput,
+  PsbtOptsOptional,
+  isFinalized,
+} from './psbt.js';
 /** @hidden */
 export {
   OPS as opcodes,
+  // scrypt exports
   REVERSE_OPS as reverse_opcodes,
   isOpSuccess,
 } from './ops.js';
@@ -29,12 +38,11 @@ export {
   PaymentOpts,
   Stack,
   StackElement,
-  LEAF_VERSION_TAPSCRIPT,
-  tapleafHash,
 } from './payments/index.js';
 export {
   Input as TxInput,
   Output as TxOutput,
+  // scrypt exports
   isNullInput,
   readOutput,
   isFinal,
@@ -43,9 +51,14 @@ export {
 } from './transaction.js';
 export { initEccLib } from './ecc_lib.js';
 
-export * from './psbt/psbtutils.js';
-export * from './psbt/bip371.js';
-export * from './psbt.js';
-export * from './interpreter.js';
-export * from './bn.js';
-export * from './bufferutils.js';
+// scrypt exports
+export * as scriptNumber from './script_number.js';
+export * as types from './types.js';
+export * as bn from './bn.js';
+export * as psbtutils from './psbt/psbtutils.js';
+export * as bip371 from './psbt/bip371.js';
+export * as bip341 from './payments/bip341.js';
+export * as interpreter from './interpreter.js';
+export * as bufferutils from './bufferutils.js';
+export * as psbt from './psbt.js';
+
