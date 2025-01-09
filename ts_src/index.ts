@@ -50,6 +50,11 @@ export {
   vectorSize,
 } from './transaction.js';
 export { initEccLib } from './ecc_lib.js';
+export { BufferWriter, BufferReader } from './bufferutils.js';
+export { Interpreter } from './interpreter.js';
+export { bn2Buf, buf2BN } from './bn.js';
+export { tapTreeFromList, tapTreeToList } from './psbt/bip371.js';
+export type { Taptree } from './types.js';
 
 // scrypt exports
 export * as scriptNumber from './script_number.js';
@@ -61,4 +66,3 @@ export * as bip341 from './payments/bip341.js';
 export * as interpreter from './interpreter.js';
 export * as bufferutils from './bufferutils.js';
 export * as psbt from './psbt.js';
-
