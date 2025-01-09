@@ -782,7 +782,9 @@ function buildLeafIndexFinalizer(
       const witness = scriptSolution
         .concat(tapLeafScript.script)
         .concat(tapLeafScript.controlBlock);
-      return { finalScriptWitness: psbtutils.witnessStackToScriptWitness(witness) };
+      return {
+        finalScriptWitness: psbtutils.witnessStackToScriptWitness(witness),
+      };
     } catch (err) {
       throw new Error(`Can not finalize taproot input #${inputIndex}: ${err}`);
     }

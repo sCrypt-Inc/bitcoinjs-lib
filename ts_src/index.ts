@@ -50,10 +50,24 @@ export {
   vectorSize,
 } from './transaction.js';
 export { initEccLib } from './ecc_lib.js';
-export { BufferWriter, BufferReader } from './bufferutils.js';
+export {
+  BufferWriter,
+  BufferReader,
+  reverseBuffer,
+  cloneBuffer,
+} from './bufferutils.js';
 export { Interpreter } from './interpreter.js';
 export { bn2Buf, buf2BN } from './bn.js';
 export { tapTreeFromList, tapTreeToList } from './psbt/bip371.js';
+export {
+  LEAF_VERSION_TAPSCRIPT,
+  HashTree,
+  rootHashFromPath,
+  toHashTree,
+  findScriptPath,
+  tapleafHash,
+  tapTweakHash,
+} from './payments/bip341.js';
 export type { Taptree } from './types.js';
 
 // scrypt exports
