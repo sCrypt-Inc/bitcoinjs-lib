@@ -13,7 +13,7 @@ import {
   tapTreeToList,
   tapTreeFromList,
 } from '@scrypt-inc/bitcoinjs-lib';
-import { witnessStackToScriptWitness } from '@scrypt-inc/bitcoinjs-lib';
+import { psbtutils } from '@scrypt-inc/bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
 import { sha256 } from '@noble/hashes/sha256';
 import { randomBytes } from 'crypto';
@@ -782,7 +782,7 @@ function buildLeafIndexFinalizer(
       const witness = scriptSolution
         .concat(tapLeafScript.script)
         .concat(tapLeafScript.controlBlock);
-      return { finalScriptWitness: witnessStackToScriptWitness(witness) };
+      return { finalScriptWitness: psbtutils.witnessStackToScriptWitness(witness) };
     } catch (err) {
       throw new Error(`Can not finalize taproot input #${inputIndex}: ${err}`);
     }
