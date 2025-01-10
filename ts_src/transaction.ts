@@ -375,6 +375,27 @@ export class Transaction {
     annex?: Uint8Array,
     codeseparatorPos?: number,
   ): Uint8Array {
+    const preimage = this.shPreimageForWitnessV1(
+      inIndex,
+      prevOutScripts,
+      values,
+      hashType,
+      leafHash,
+      annex,
+      codeseparatorPos,
+    );
+    return sha256(preimage);
+  }
+
+  shPreimageForWitnessV1(
+    inIndex: number,
+    prevOutScripts: Uint8Array[],
+    values: bigint[],
+    hashType: number,
+    leafHash?: Uint8Array,
+    annex?: Uint8Array,
+    codeseparatorPos?: number,
+  ): Uint8Array {
     // https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki#common-signature-message
     v.parse(
       v.tuple([
@@ -517,10 +538,11 @@ export class Transaction {
 
     // Extra zero byte because:
     // https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki#cite_note-19
-    return bcrypto.taggedHash(
-      'TapSighash',
-      tools.concat([Uint8Array.from([0x00]), sigMsgWriter.end()]),
-    );
+    return tools.concat([
+      bcrypto.TAGGED_HASH_PREFIXES.TapSighash,
+      Uint8Array.from([0x00]),
+      sigMsgWriter.end(),
+    ]);
   }
 
   hashForWitnessV0(
