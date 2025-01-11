@@ -49,7 +49,7 @@ export {
   varSliceSize,
   vectorSize,
 } from './transaction.js';
-export { initEccLib } from './ecc_lib.js';
+export { initEccLib, getEccLib } from './ecc_lib.js';
 export {
   BufferWriter,
   BufferReader,
