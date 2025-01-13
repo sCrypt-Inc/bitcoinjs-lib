@@ -1799,7 +1799,7 @@ function getTaprootHashesForSig(
   }
 
   const tapLeafHashes = (input.tapLeafScript || [])
-    .filter((tapLeaf: TapLeafScript) => pubkeyInScript(pubkey, tapLeaf.script))
+    //.filter((tapLeaf: TapLeafScript) => pubkeyInScript(pubkey, tapLeaf.script))
     .map((tapLeaf: TapLeafScript) => {
       const hash = tapleafHash({
         output: tapLeaf.script,
