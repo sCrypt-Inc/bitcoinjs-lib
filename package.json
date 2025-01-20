@@ -32,7 +32,8 @@
   "scripts": {
     "audit": "better-npm-audit audit -l high",
     "build": "npm run clean && tsc -p ./tsconfig.json && tsc -p ./tsconfig.cjs.json",
-    "clean": "rimraf src",
+    "postbuild": "find dist/cjs -type f -name \"*.js\" -exec bash -c 'mv \"$0\" \"${0%.js}.cjs\"' {} \\; && chmod +x ./fixup.cjs && node fixup.cjs",
+    "clean": "rimraf dist",
     "coverage-report": "npm run build && npm run nobuild:coverage-report",
     "coverage-html": "npm run build && npm run nobuild:coverage-html",
     "coverage": "npm run build && npm run nobuild:coverage",
