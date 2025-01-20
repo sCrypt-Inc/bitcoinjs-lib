@@ -597,7 +597,6 @@ describe('Interpreter', () => {
               // allConsensusFlags() takes too long for the javascript implementation. Keeping the logic here for anyone who wants to run with allConsensusFlags
               if (fin || (flags & testFlags) == flags) {
                 const interp = new Interpreter();
-                const aa = bscript.toASM(prevOuts[idx].script);
                 const ret = interp.verify(
                   tx.ins[idx].script,
                   prevOuts[idx].script,
