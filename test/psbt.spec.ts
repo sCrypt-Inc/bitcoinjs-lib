@@ -22,7 +22,7 @@ import {
   payments,
   Signer,
   SignerAsync,
-} from 'bitcoinjs-lib';
+} from '@scrypt-inc/bitcoinjs-lib';
 
 import preFixtures from './fixtures/psbt.json';
 import taprootFixtures from './fixtures/p2tr.json';
