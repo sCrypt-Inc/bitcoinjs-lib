@@ -1,25 +1,30 @@
+const glob = require('glob');
 const fs = require('fs');
-const path = require('path');
+const { basename, dirname, join } = require('path');
 
-const updateRequires = (filePath) => {
+const updateRequires = filePath => {
   let content = fs.readFileSync(filePath, 'utf8');
   //replace local imports eg. require("./ecpair.js") to require("ecpair.cjs")
-  content = content.replace(/require\("\.\/([^"]*)\.js"\)/g, "require('./$1.cjs')");
-  content = content.replace(/require\("\.\.\/([^"]*)\.js"\)/g, "require('../$1.cjs')");
+  content = content.replace(
+    /require\("\.\/([^"]*)\.js"\)/g,
+    "require('./$1.cjs')",
+  );
+  content = content.replace(
+    /require\("\.\.\/([^"]*)\.js"\)/g,
+    "require('../$1.cjs')",
+  );
 
   fs.writeFileSync(filePath, content, 'utf8');
 };
 
-const processFiles = (dir) => {
-  fs.readdirSync(dir).forEach((file) => {
-    const filePath = path.join(dir, file);
-    if (fs.lstatSync(filePath).isDirectory()) {
-      processFiles(filePath);
-    } else if (filePath.endsWith('.cjs')) {
-      updateRequires(filePath);
-    }
+async function main() {
+  const files = await glob.glob('dist/cjs/**/*.js', { nodir: true });
+  files.forEach(file => {
+    updateRequires(file);
+    const fileName = basename(file);
+    const dir = dirname(file);
+    fs.renameSync(file, join(dir, fileName.replace('.js', '.cjs')));
   });
-};
+}
 
-const dir = path.join(__dirname, 'dist', 'cjs');
-processFiles(dir);
+main();
