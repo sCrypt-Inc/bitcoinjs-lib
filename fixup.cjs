@@ -4,8 +4,8 @@ const path = require('path');
 const updateRequires = (filePath) => {
   let content = fs.readFileSync(filePath, 'utf8');
   //replace local imports eg. require("./ecpair.js") to require("ecpair.cjs")
-  content = content.replace(/require\('\.\/([^']*)\.js'\)/g, "require('./$1.cjs')");
-  content = content.replace(/require\('\.\.\/([^']*)\.js'\)/g, "require('../$1.cjs')");
+  content = content.replace(/require\("\.\/([^"]*)\.js"\)/g, "require('./$1.cjs')");
+  content = content.replace(/require\("\.\.\/([^"]*)\.js"\)/g, "require('../$1.cjs')");
 
   fs.writeFileSync(filePath, content, 'utf8');
 };
