@@ -678,7 +678,7 @@ export class Transaction {
     this.ins[index].witness = witness;
   }
 
-  private __toBuffer(
+  public __toBuffer(
     buffer?: Uint8Array,
     initialOffset?: number,
     _ALLOW_WITNESS: boolean = false,
