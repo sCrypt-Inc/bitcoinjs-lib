@@ -655,7 +655,11 @@ export class Transaction {
     return tools.toHex(reverseBuffer(this.getHash(false)));
   }
 
-  toBuffer(buffer?: Uint8Array, initialOffset?: number, _ALLOW_WITNESS: boolean = true): Uint8Array {
+  toBuffer(
+    buffer?: Uint8Array,
+    initialOffset?: number,
+    _ALLOW_WITNESS: boolean = true,
+  ): Uint8Array {
     return this.__toBuffer(buffer, initialOffset, _ALLOW_WITNESS);
   }
 
