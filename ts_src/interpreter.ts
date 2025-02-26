@@ -16,7 +16,6 @@ import * as tools from 'uint8array-tools';
 import { hash160, hash256 } from './crypto.js';
 import { isOpSuccess } from './ops.js';
 import { BufferWriter } from './bufferutils.js';
-import { isUint8Array } from 'util/types';
 import { rootHashFromPath, tapleafHash, tweakKey } from './payments/bip341.js';
 import { ECPairFactory } from 'ecpair';
 import { decodeSchnorrSignature } from './psbt/bip371.js';
@@ -2289,8 +2288,8 @@ export class Interpreter {
     sigversion: SignatureVersion,
     execdata: any,
   ) {
-    requireTrue(sig && isUint8Array(sig), 'Missing sig');
-    requireTrue(pubkey && isUint8Array(sig), 'Missing pubkey');
+    requireTrue(sig && sig instanceof Uint8Array, 'Missing sig');
+    requireTrue(pubkey && pubkey instanceof Uint8Array, 'Missing pubkey');
     requireTrue(sigversion !== undefined, 'Missing sigversion');
     requireTrue(execdata, 'Missing execdata');
 
