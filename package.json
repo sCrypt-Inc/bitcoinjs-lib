@@ -37,7 +37,7 @@
     "coverage-report": "npm run build && npm run nobuild:coverage-report",
     "coverage-html": "npm run build && npm run nobuild:coverage-html",
     "coverage": "npm run build && npm run nobuild:coverage",
-    "doc": "typedoc",
+    "doc": "typedoc --readme none --plugin typedoc-plugin-markdown",
     "format": "npm run prettier -- --write",
     "format:ci": "npm run prettier -- --check",
     "gitdiff:ci": "npm run build && git diff --exit-code",
@@ -74,6 +74,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.9.1",
+    "@scrypt-inc/bitcoinjs-lib": ".",
     "@types/bs58": "^4.0.0",
     "@types/bs58check": "^2.1.0",
     "@types/mocha": "^10.0.10",
@@ -88,7 +89,6 @@
     "bip39": "^3.1.0",
     "bip65": "^1.0.1",
     "bip68": "^1.0.3",
-    "@scrypt-inc/bitcoinjs-lib": ".",
     "bs58": "^6.0.0",
     "c8": "^10.1.2",
     "dhttp": "^3.0.0",
@@ -108,8 +108,9 @@
     "sinon": "^19.0.2",
     "tiny-secp256k1": "^2.2.0",
     "tsx": "^4.17.0",
-    "typedoc": "^0.26.6",
-    "typescript": "^5.0.4"
+    "typedoc": "^0.27.0",
+    "typescript": "^5.0.4",
+    "typedoc-plugin-markdown": "^4.4.2"
   },
   "license": "MIT"
 }
