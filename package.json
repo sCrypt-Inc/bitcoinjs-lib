@@ -1,6 +1,6 @@
 {
   "name": "@scrypt-inc/bitcoinjs-lib",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Client-side Bitcoin JavaScript library",
   "type": "module",
   "main": "./dist/cjs/index.cjs",
