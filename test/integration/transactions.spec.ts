@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import BIP32Factory from 'bip32';
 import * as ecc from 'tiny-secp256k1';
-import ECPairFactory from 'ecpair';
+import ECPairFactory from '@scrypt-inc/ecpair';
 import { describe, it } from 'mocha';
 import * as bitcoin from '@scrypt-inc/bitcoinjs-lib';
 import { regtestUtils } from './_regtest.js';

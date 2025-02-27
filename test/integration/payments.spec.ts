@@ -1,4 +1,4 @@
-import ECPairFactory from 'ecpair';
+import ECPairFactory from '@scrypt-inc/ecpair';
 import * as ecc from 'tiny-secp256k1';
 import { describe, it } from 'mocha';
 import * as bitcoin from '@scrypt-inc/bitcoinjs-lib';

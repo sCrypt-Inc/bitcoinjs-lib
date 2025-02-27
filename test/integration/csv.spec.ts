@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { PsbtInput } from 'bip174';
-import ECPairFactory from 'ecpair';
+import ECPairFactory from '@scrypt-inc/ecpair';
 import * as ecc from 'tiny-secp256k1';
 import { before, describe, it } from 'mocha';
 import * as bitcoin from '@scrypt-inc/bitcoinjs-lib';
