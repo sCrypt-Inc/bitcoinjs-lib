@@ -17,7 +17,7 @@ import { hash160, hash256 } from './crypto.js';
 import { isOpSuccess } from './ops.js';
 import { BufferWriter } from './bufferutils.js';
 import { rootHashFromPath, tapleafHash, tweakKey } from './payments/bip341.js';
-import { ECPairFactory } from 'ecpair';
+import { ECPairFactory } from '@scrypt-inc/ecpair';
 import { decodeSchnorrSignature } from './psbt/bip371.js';
 import { getEccLib } from './ecc_lib.js';
 

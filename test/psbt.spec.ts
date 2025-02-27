@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as BIP32Factory from 'bip32';
 import * as ecc from 'tiny-secp256k1';
 import * as crypto from 'crypto';
-import ECPairFactory from 'ecpair';
+import ECPairFactory from '@scrypt-inc/ecpair';
 import { describe, it } from 'mocha';
 
 import { convertScriptTree } from './payments.utils.js';
