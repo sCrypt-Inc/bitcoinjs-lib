@@ -9,8 +9,10 @@ import {
   isNullInput,
   readOutput,
   TxOutput,
+  Psbt,
 } from '@scrypt-inc/bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
+import * as varuint from 'varuint-bitcoin';
 import script_tests from './fixtures/scripts/script_tests.json';
 import script_asset_tests from './fixtures/scripts/script_assets_test.json';
 import tx_valid from './fixtures/scripts/tx_valid.json';
@@ -18,6 +20,10 @@ import tx_invalid from './fixtures/scripts/tx_invalid.json';
 import { initEccLib } from '@scrypt-inc/bitcoinjs-lib';
 import * as ecc from 'tiny-secp256k1';
 import sinon from 'sinon';
+
+import * as fs from 'fs';
+import { join } from 'path';
+import { cwd } from 'process';
 
 initEccLib(ecc);
 
@@ -640,4 +646,76 @@ describe('Interpreter', () => {
 
     testAllFixtures(script_asset_tests as Array<any>);
   });
+
+  describe('psbt tests', function () {
+    const psbtBase64 = fs
+      .readFileSync(join(cwd(), 'test', 'fixtures', 'psbt', '0.txt'))
+      .toString();
+
+    const psbt = Psbt.fromBase64(psbtBase64);
+
+    assert.strictEqual(bvmVerify(psbt, 0), true);
+    assert.strictEqual(bvmVerify(psbt, 1), true);
+  });
 });
+
+function bvmVerify(extPsbt: Psbt, inputIndex: number = 0): true | string {
+  const prevOuts = extPsbt.data.inputs.map(input => input.witnessUtxo!);
+
+  const interp = new Interpreter();
+  const prevScript = prevOuts[inputIndex].script;
+  const prevSatoshi = Number(prevOuts[inputIndex].value);
+
+  const finalScriptWitness =
+    extPsbt.data.inputs[inputIndex].finalScriptWitness || Uint8Array.from([]);
+
+  const witness: Uint8Array[] = scriptWitnessToWitnessStack(finalScriptWitness);
+
+  const flags =
+    Interpreter.SCRIPT_VERIFY_TAPROOT |
+    Interpreter.SCRIPT_VERIFY_WITNESS |
+    Interpreter.SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY |
+    Interpreter.SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
+  const ret = interp.verify(
+    new Uint8Array(0),
+    prevScript,
+    extPsbt.extractTransaction(),
+    inputIndex,
+    flags,
+    witness,
+    prevSatoshi,
+    prevOuts,
+  );
+  if (!ret) {
+    return interp.getErr();
+  }
+
+  return true;
+}
+
+function scriptWitnessToWitnessStack(scriptWitness: Uint8Array) {
+  const witness: Uint8Array[] = [];
+  function readSlice(buffer: Uint8Array, offset: number, len: number) {
+    return buffer.slice(offset, offset + len);
+  }
+  function readVarInt(buffer: Uint8Array, offset: number) {
+    return varuint.decode(buffer, offset);
+  }
+  function readVarSlice(buffer: Uint8Array, offset: number) {
+    const { numberValue, bytes } = readVarInt(buffer, offset);
+    const slice = readSlice(buffer, offset + bytes, numberValue!);
+    return { slice, bytes: bytes + numberValue! };
+  }
+
+  let offset = 0;
+  const { numberValue, bytes } = readVarInt(scriptWitness, offset);
+
+  offset += bytes;
+  for (let i = 0; i < numberValue!; i++) {
+    const { slice, bytes } = readVarSlice(scriptWitness, offset);
+    witness.push(slice);
+    offset += bytes;
+  }
+
+  return witness;
+}

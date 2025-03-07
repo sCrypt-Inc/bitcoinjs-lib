@@ -40,7 +40,7 @@ function toSMBigEndian(bn: bigint) {
   }
 
   if (buf.length === 1 && buf[0] === 0) {
-    buf = Buffer.from([]);
+    buf = Uint8Array.from([]);
   }
   return buf;
 }
@@ -82,7 +82,7 @@ export function buf2BN(
     return BigInt(0);
   }
 
-  buf.reverse();
+  buf = buf.slice().reverse();
 
   let ret = 0n;
 
