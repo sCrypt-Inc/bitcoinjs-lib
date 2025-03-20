@@ -279,6 +279,7 @@ export class Interpreter {
   static readonly PROTOCOL_VERSION = 70016;
   private sigversion: SignatureVersion = SignatureVersion.BASE;
   private errstr: InterpreterErr = InterpreterErr.NONE;
+  private evaluateError: Error | null = null;
 
   private stack: Uint8Array[] = [];
 
@@ -311,6 +312,9 @@ export class Interpreter {
 
   getErr(): InterpreterErr {
     return this.errstr;
+  }
+  getEvaluateError(): Error | null {
+    return this.evaluateError;
   }
 
   initialize() {
@@ -860,8 +864,9 @@ export class Interpreter {
           return false;
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       this.errstr = InterpreterErr.SCRIPT_ERR_UNKNOWN_ERROR;
+      this.evaluateError = e;
       return false;
     }
 
